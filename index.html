@@ -147,7 +147,6 @@
     let history = [];
     let idx = -1;
 
-    // Wake backend
     fetch(PROXY_BACKEND + '/').catch(() => {});
 
     function isUrl(input) {
@@ -162,6 +161,11 @@
       return `${PROXY_BACKEND}/proxy?url=${encodeURIComponent(target)}`;
     }
 
+    function getSearchUrl(query) {
+      // Use our own search endpoint instead of DuckDuckGo directly
+      return `${PROXY_BACKEND}/search?q=${encodeURIComponent(query)}`;
+    }
+
     function loadUrl() {
       const input = document.getElementById('urlInput').value.trim();
       if (!input) return;
@@ -171,8 +175,8 @@
       if (isUrl(input)) {
         target = input.match(/^https?:\/\//i) ? input : 'https://' + input;
       } else {
-        // Search with DuckDuckGo HTML
-        target = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(input)}`;
+        // Use backend search endpoint
+        target = getSearchUrl(input);
       }
 
       // YouTube -> Invidious
@@ -194,9 +198,7 @@
       loading.classList.remove('hidden');
       status.textContent = 'Loading...';
 
-      const proxyUrl = getProxyUrl(target);
-
-      frame.src = proxyUrl;
+      frame.src = target;
       document.getElementById('urlInput').value = target;
       display.textContent = target;
 
