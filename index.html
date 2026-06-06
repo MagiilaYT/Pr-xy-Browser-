@@ -13,11 +13,7 @@
       height: 100vh;
       overflow: hidden;
     }
-    .browser {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
+    .browser { display: flex; flex-direction: column; height: 100vh; }
     .toolbar {
       background: #1a1a1a;
       border-bottom: 1px solid #333;
@@ -37,10 +33,7 @@
     }
     .btn:hover { background: #3a3a3a; }
     .btn:disabled { opacity: 0.3; cursor: not-allowed; }
-    .btn.primary {
-      background: #6366f1;
-      border-color: #6366f1;
-    }
+    .btn.primary { background: #6366f1; border-color: #6366f1; }
     .btn.primary:hover { background: #818cf8; }
     .address-bar {
       flex: 1;
@@ -62,10 +55,6 @@
       outline: none;
     }
     .address-bar input::placeholder { color: #666; }
-    .search-icon {
-      color: #888;
-      font-size: 14px;
-    }
     .badge {
       background: #6366f1;
       color: #fff;
@@ -74,30 +63,17 @@
       font-size: 11px;
       font-weight: 600;
     }
-    .viewport {
-      flex: 1;
-      position: relative;
-      background: #fff;
-    }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
+    .viewport { flex: 1; position: relative; background: #fff; }
+    iframe { width: 100%; height: 100%; border: none; }
     .loading {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
       background: #0a0a0a;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      z-index: 10;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 16px; z-index: 10;
     }
     .spinner {
-      width: 36px;
-      height: 36px;
+      width: 36px; height: 36px;
       border: 3px solid #333;
       border-top-color: #6366f1;
       border-radius: 50%;
@@ -117,24 +93,16 @@
     }
     .status .url { color: #6366f1; }
     .error {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
       background: #0a0a0a;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      z-index: 20;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; z-index: 20;
     }
     .error.active { display: flex; }
     .error h2 { color: #ef4444; }
     .error p { color: #888; max-width: 400px; text-align: center; }
-    .suggestion {
-      color: #6366f1;
-      font-size: 12px;
-      margin-top: 8px;
-    }
+    .error .tip { color: #6366f1; font-size: 12px; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -145,8 +113,8 @@
       <button class="btn" onclick="reload()">↻</button>
       <button class="btn" onclick="goHome()">🏠</button>
       <div class="address-bar">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="urlInput" placeholder="Search or enter URL" 
+        <span>🔍</span>
+        <input type="text" id="urlInput" placeholder="Search or enter URL"
                onkeydown="if(event.key==='Enter')loadUrl()">
       </div>
       <button class="btn primary" onclick="loadUrl()">Go</button>
@@ -160,9 +128,9 @@
       </div>
       <iframe id="frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
       <div class="error" id="error">
-        <h2>⚠️ Failed to Load</h2>
-        <p id="errorMsg">Could not reach the website.</p>
-        <p class="suggestion" id="suggestion"></p>
+        <h2>⚠️ Can't Load</h2>
+        <p id="errorMsg">This site blocks proxies.</p>
+        <p class="tip" id="errorTip"></p>
         <button class="btn" onclick="hideError()">Dismiss</button>
       </div>
     </div>
@@ -174,43 +142,49 @@
   </div>
 
   <script>
-    // ============================================
-    // CONFIG: Your Render backend URL
-    // ============================================
     const PROXY_BACKEND = 'https://qwertyuiop-dm2v.onrender.com';
 
     let history = [];
     let idx = -1;
 
+    // Wake backend
+    fetch(PROXY_BACKEND + '/').catch(() => {});
+
     function isUrl(input) {
-      // Check if it looks like a URL
-      const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/i;
-      return urlPattern.test(input) && input.includes('.');
+      return /^https?:\/\//i.test(input) || (input.includes('.') && !input.includes(' ') && input.length > 4);
     }
 
-    function getSearchUrl(query) {
-      // Use DuckDuckGo HTML version (lighter, works better in iframe)
-      return `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    function isYouTube(url) {
+      return /(youtube\.com|youtu\.be)/i.test(url);
+    }
+
+    function getProxyUrl(target) {
+      return `${PROXY_BACKEND}/proxy?url=${encodeURIComponent(target)}`;
     }
 
     function loadUrl() {
       const input = document.getElementById('urlInput').value.trim();
       if (!input) return;
 
-      let targetUrl;
+      let target;
 
       if (isUrl(input)) {
-        // It's a URL
-        targetUrl = input.match(/^https?:\/\//i) ? input : 'https://' + input;
+        target = input.match(/^https?:\/\//i) ? input : 'https://' + input;
       } else {
-        // It's a search query — use DuckDuckGo
-        targetUrl = getSearchUrl(input);
+        // Search with DuckDuckGo HTML
+        target = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(input)}`;
       }
 
-      navigate(targetUrl, true);
+      // YouTube -> Invidious
+      if (isYouTube(target)) {
+        const videoId = target.match(/(?:v=|\/)([\w-]{11})/)?.[1];
+        target = videoId ? `https://y.com.sb/watch?v=${videoId}` : 'https://y.com.sb';
+      }
+
+      navigate(target, true);
     }
 
-    function navigate(url, save) {
+    function navigate(target, save) {
       const frame = document.getElementById('frame');
       const loading = document.getElementById('loading');
       const status = document.getElementById('statusText');
@@ -220,31 +194,33 @@
       loading.classList.remove('hidden');
       status.textContent = 'Loading...';
 
-      const proxyUrl = `${PROXY_BACKEND}/proxy?url=${encodeURIComponent(url)}`;
+      const proxyUrl = getProxyUrl(target);
 
       frame.src = proxyUrl;
-      document.getElementById('urlInput').value = isUrl(document.getElementById('urlInput').value.trim()) ? url : document.getElementById('urlInput').value;
-      display.textContent = url;
+      document.getElementById('urlInput').value = target;
+      display.textContent = target;
 
+      let loaded = false;
       frame.onload = () => {
+        loaded = true;
         loading.classList.add('hidden');
         status.textContent = 'Done';
-        if (save) addHistory(url);
+        if (save) addHistory(target);
       };
 
       frame.onerror = () => {
         loading.classList.add('hidden');
-        showError('The page failed to load.', 'Try searching instead, or use a simpler site like example.com');
+        showError('Failed to load.', 'Try a different site.');
       };
 
-      // Timeout fallback
       setTimeout(() => {
         if (!loading.classList.contains('hidden')) {
           loading.classList.add('hidden');
-          status.textContent = 'Loaded';
-          if (save) addHistory(url);
+          if (!loaded) status.textContent = 'Timeout';
+          else status.textContent = 'Done';
+          if (save && !loaded) addHistory(target);
         }
-      }, 15000);
+      }, 20000);
     }
 
     function addHistory(url) {
@@ -263,17 +239,9 @@
       document.getElementById('fwdBtn').disabled = idx >= history.length - 1;
     }
 
-    function goBack() {
-      if (idx > 0) { idx--; navigate(history[idx], false); }
-    }
-
-    function goForward() {
-      if (idx < history.length - 1) { idx++; navigate(history[idx], false); }
-    }
-
-    function reload() {
-      if (idx >= 0) navigate(history[idx], false);
-    }
+    function goBack() { if (idx > 0) { idx--; navigate(history[idx], false); } }
+    function goForward() { if (idx < history.length - 1) { idx++; navigate(history[idx], false); } }
+    function reload() { if (idx >= 0) navigate(history[idx], false); }
 
     function goHome() {
       document.getElementById('urlInput').value = '';
@@ -282,9 +250,9 @@
       document.getElementById('statusText').textContent = 'Ready';
     }
 
-    function showError(msg, suggestion) {
+    function showError(msg, tip) {
       document.getElementById('errorMsg').textContent = msg;
-      document.getElementById('suggestion').textContent = suggestion || '';
+      document.getElementById('errorTip').textContent = tip || '';
       document.getElementById('error').classList.add('active');
     }
 
@@ -292,13 +260,8 @@
       document.getElementById('error').classList.remove('active');
     }
 
-    // Load saved history
     const saved = localStorage.getItem('proxyHistory');
-    if (saved) {
-      history = JSON.parse(saved);
-      idx = history.length - 1;
-      updateButtons();
-    }
+    if (saved) { history = JSON.parse(saved); idx = history.length - 1; updateButtons(); }
 
     document.getElementById('urlInput').focus();
   </script>
