@@ -63,7 +63,7 @@
       font-size: 11px;
       font-weight: 600;
     }
-    .viewport { flex: 1; position: relative; background: #fff; }
+    .viewport { flex: 1; position: relative; background: #1a1a1a; }
     iframe { width: 100%; height: 100%; border: none; }
     .loading {
       position: absolute; inset: 0;
@@ -102,9 +102,7 @@
     .error.active { display: flex; }
     .error h2 { color: #ef4444; }
     .error p { color: #888; max-width: 400px; text-align: center; }
-    .error .tip { color: #6366f1; font-size: 12px; margin-top: 4px; }
   </style>
-<base target="_blank">
 </head>
 <body>
   <div class="browser">
@@ -131,7 +129,6 @@
       <div class="error" id="error">
         <h2>⚠️ Can't Load</h2>
         <p id="errorMsg">This site blocks proxies.</p>
-        <p class="tip" id="errorTip"></p>
         <button class="btn" onclick="hideError()">Dismiss</button>
       </div>
     </div>
@@ -158,7 +155,6 @@
       return /(youtube\.com|youtu\.be)/i.test(url);
     }
 
-    // ALWAYS wrap URL through proxy
     function wrapProxy(target) {
       return `${PROXY_BACKEND}/proxy?url=${encodeURIComponent(target)}`;
     }
@@ -172,8 +168,10 @@
       if (isUrl(input)) {
         target = input.match(/^https?:\/\//i) ? input : 'https://' + input;
       } else {
-        // Search with DuckDuckGo HTML
-        target = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(input)}`;
+        // Use backend search endpoint (NOT DuckDuckGo directly)
+        target = `${PROXY_BACKEND}/search?q=${encodeURIComponent(input)}`;
+        navigate(target, `Search: ${input}`, true);
+        return;
       }
 
       // YouTube -> Invidious
@@ -182,12 +180,11 @@
         target = videoId ? `https://y.com.sb/watch?v=${videoId}` : 'https://y.com.sb';
       }
 
-      // ALWAYS proxy it
       const proxied = wrapProxy(target);
       navigate(proxied, target, true);
     }
 
-    function navigate(proxiedUrl, realUrl, save) {
+    function navigate(proxiedUrl, displayUrl, save) {
       const frame = document.getElementById('frame');
       const loading = document.getElementById('loading');
       const status = document.getElementById('statusText');
@@ -195,31 +192,30 @@
 
       hideError();
       loading.classList.remove('hidden');
-      status.textContent = 'Loading via proxy...';
+      status.textContent = 'Loading...';
 
       frame.src = proxiedUrl;
-      document.getElementById('urlInput').value = realUrl;
-      display.textContent = realUrl;
+      document.getElementById('urlInput').value = displayUrl;
+      display.textContent = displayUrl;
 
       let loaded = false;
       frame.onload = () => {
         loaded = true;
         loading.classList.add('hidden');
         status.textContent = 'Done';
-        if (save) addHistory(realUrl);
+        if (save) addHistory(displayUrl);
       };
 
       frame.onerror = () => {
         loading.classList.add('hidden');
-        showError('Failed to load.', 'Site may block proxies. Try another.');
+        showError('Failed to load.');
       };
 
       setTimeout(() => {
         if (!loading.classList.contains('hidden')) {
           loading.classList.add('hidden');
-          if (!loaded) status.textContent = 'Timeout';
-          else status.textContent = 'Done';
-          if (save && !loaded) addHistory(realUrl);
+          status.textContent = loaded ? 'Done' : 'Timeout';
+          if (save && !loaded) addHistory(displayUrl);
         }
       }, 20000);
     }
@@ -243,19 +239,39 @@
     function goBack() { 
       if (idx > 0) { 
         idx--; 
-        navigate(wrapProxy(history[idx]), history[idx], false); 
+        const url = history[idx];
+        if (url.startsWith('Search:')) {
+          const query = url.replace('Search: ', '');
+          navigate(`${PROXY_BACKEND}/search?q=${encodeURIComponent(query)}`, url, false);
+        } else {
+          navigate(wrapProxy(url), url, false);
+        }
       } 
     }
     
     function goForward() { 
       if (idx < history.length - 1) { 
         idx++; 
-        navigate(wrapProxy(history[idx]), history[idx], false); 
+        const url = history[idx];
+        if (url.startsWith('Search:')) {
+          const query = url.replace('Search: ', '');
+          navigate(`${PROXY_BACKEND}/search?q=${encodeURIComponent(query)}`, url, false);
+        } else {
+          navigate(wrapProxy(url), url, false);
+        }
       } 
     }
     
     function reload() { 
-      if (idx >= 0) navigate(wrapProxy(history[idx]), history[idx], false); 
+      if (idx >= 0) {
+        const url = history[idx];
+        if (url.startsWith('Search:')) {
+          const query = url.replace('Search: ', '');
+          navigate(`${PROXY_BACKEND}/search?q=${encodeURIComponent(query)}`, url, false);
+        } else {
+          navigate(wrapProxy(url), url, false);
+        }
+      }
     }
 
     function goHome() {
@@ -265,9 +281,8 @@
       document.getElementById('statusText').textContent = 'Ready';
     }
 
-    function showError(msg, tip) {
+    function showError(msg) {
       document.getElementById('errorMsg').textContent = msg;
-      document.getElementById('errorTip').textContent = tip || '';
       document.getElementById('error').classList.add('active');
     }
 
