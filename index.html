@@ -51,6 +51,7 @@
       padding: 0 12px;
       height: 38px;
       align-items: center;
+      gap: 8px;
     }
     .address-bar input {
       background: transparent;
@@ -59,6 +60,11 @@
       font-size: 14px;
       width: 100%;
       outline: none;
+    }
+    .address-bar input::placeholder { color: #666; }
+    .search-icon {
+      color: #888;
+      font-size: 14px;
     }
     .badge {
       background: #6366f1;
@@ -124,6 +130,11 @@
     .error.active { display: flex; }
     .error h2 { color: #ef4444; }
     .error p { color: #888; max-width: 400px; text-align: center; }
+    .suggestion {
+      color: #6366f1;
+      font-size: 12px;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
@@ -134,7 +145,8 @@
       <button class="btn" onclick="reload()">↻</button>
       <button class="btn" onclick="goHome()">🏠</button>
       <div class="address-bar">
-        <input type="text" id="urlInput" placeholder="example.com" 
+        <span class="search-icon">🔍</span>
+        <input type="text" id="urlInput" placeholder="Search or enter URL" 
                onkeydown="if(event.key==='Enter')loadUrl()">
       </div>
       <button class="btn primary" onclick="loadUrl()">Go</button>
@@ -144,12 +156,13 @@
     <div class="viewport">
       <div class="loading" id="loading">
         <div class="spinner"></div>
-        <p>Loading via proxy...</p>
+        <p>Loading...</p>
       </div>
       <iframe id="frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
       <div class="error" id="error">
         <h2>⚠️ Failed to Load</h2>
         <p id="errorMsg">Could not reach the website.</p>
+        <p class="suggestion" id="suggestion"></p>
         <button class="btn" onclick="hideError()">Dismiss</button>
       </div>
     </div>
@@ -162,28 +175,39 @@
 
   <script>
     // ============================================
-    // CONFIG: Put your Render backend URL here
+    // CONFIG: Your Render backend URL
     // ============================================
     const PROXY_BACKEND = 'https://qwertyuiop-dm2v.onrender.com';
-    // Example: 'https://proxy-server-abc123.onrender.com'
-    // ============================================
 
     let history = [];
     let idx = -1;
+
+    function isUrl(input) {
+      // Check if it looks like a URL
+      const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w-./?%&=]*)?$/i;
+      return urlPattern.test(input) && input.includes('.');
+    }
+
+    function getSearchUrl(query) {
+      // Use DuckDuckGo HTML version (lighter, works better in iframe)
+      return `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    }
 
     function loadUrl() {
       const input = document.getElementById('urlInput').value.trim();
       if (!input) return;
 
-      let url = input;
-      if (!url.match(/^https?:\/\//i)) url = 'https://' + url;
+      let targetUrl;
 
-      try { new URL(url); } catch {
-        showError('Invalid URL');
-        return;
+      if (isUrl(input)) {
+        // It's a URL
+        targetUrl = input.match(/^https?:\/\//i) ? input : 'https://' + input;
+      } else {
+        // It's a search query — use DuckDuckGo
+        targetUrl = getSearchUrl(input);
       }
 
-      navigate(url, true);
+      navigate(targetUrl, true);
     }
 
     function navigate(url, save) {
@@ -196,11 +220,10 @@
       loading.classList.remove('hidden');
       status.textContent = 'Loading...';
 
-      // Call your backend proxy
       const proxyUrl = `${PROXY_BACKEND}/proxy?url=${encodeURIComponent(url)}`;
-      
+
       frame.src = proxyUrl;
-      document.getElementById('urlInput').value = url;
+      document.getElementById('urlInput').value = isUrl(document.getElementById('urlInput').value.trim()) ? url : document.getElementById('urlInput').value;
       display.textContent = url;
 
       frame.onload = () => {
@@ -211,9 +234,10 @@
 
       frame.onerror = () => {
         loading.classList.add('hidden');
-        showError('Site blocked the proxy or is unavailable.');
+        showError('The page failed to load.', 'Try searching instead, or use a simpler site like example.com');
       };
 
+      // Timeout fallback
       setTimeout(() => {
         if (!loading.classList.contains('hidden')) {
           loading.classList.add('hidden');
@@ -258,8 +282,9 @@
       document.getElementById('statusText').textContent = 'Ready';
     }
 
-    function showError(msg) {
+    function showError(msg, suggestion) {
       document.getElementById('errorMsg').textContent = msg;
+      document.getElementById('suggestion').textContent = suggestion || '';
       document.getElementById('error').classList.add('active');
     }
 
