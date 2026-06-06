@@ -104,6 +104,7 @@
     .error p { color: #888; max-width: 400px; text-align: center; }
     .error .tip { color: #6366f1; font-size: 12px; margin-top: 4px; }
   </style>
+<base target="_blank">
 </head>
 <body>
   <div class="browser">
@@ -124,7 +125,7 @@
     <div class="viewport">
       <div class="loading" id="loading">
         <div class="spinner"></div>
-        <p>Loading...</p>
+        <p>Loading via proxy...</p>
       </div>
       <iframe id="frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
       <div class="error" id="error">
@@ -157,13 +158,9 @@
       return /(youtube\.com|youtu\.be)/i.test(url);
     }
 
-    function getProxyUrl(target) {
+    // ALWAYS wrap URL through proxy
+    function wrapProxy(target) {
       return `${PROXY_BACKEND}/proxy?url=${encodeURIComponent(target)}`;
-    }
-
-    function getSearchUrl(query) {
-      // Use our own search endpoint instead of DuckDuckGo directly
-      return `${PROXY_BACKEND}/search?q=${encodeURIComponent(query)}`;
     }
 
     function loadUrl() {
@@ -175,8 +172,8 @@
       if (isUrl(input)) {
         target = input.match(/^https?:\/\//i) ? input : 'https://' + input;
       } else {
-        // Use backend search endpoint
-        target = getSearchUrl(input);
+        // Search with DuckDuckGo HTML
+        target = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(input)}`;
       }
 
       // YouTube -> Invidious
@@ -185,10 +182,12 @@
         target = videoId ? `https://y.com.sb/watch?v=${videoId}` : 'https://y.com.sb';
       }
 
-      navigate(target, true);
+      // ALWAYS proxy it
+      const proxied = wrapProxy(target);
+      navigate(proxied, target, true);
     }
 
-    function navigate(target, save) {
+    function navigate(proxiedUrl, realUrl, save) {
       const frame = document.getElementById('frame');
       const loading = document.getElementById('loading');
       const status = document.getElementById('statusText');
@@ -196,23 +195,23 @@
 
       hideError();
       loading.classList.remove('hidden');
-      status.textContent = 'Loading...';
+      status.textContent = 'Loading via proxy...';
 
-      frame.src = target;
-      document.getElementById('urlInput').value = target;
-      display.textContent = target;
+      frame.src = proxiedUrl;
+      document.getElementById('urlInput').value = realUrl;
+      display.textContent = realUrl;
 
       let loaded = false;
       frame.onload = () => {
         loaded = true;
         loading.classList.add('hidden');
         status.textContent = 'Done';
-        if (save) addHistory(target);
+        if (save) addHistory(realUrl);
       };
 
       frame.onerror = () => {
         loading.classList.add('hidden');
-        showError('Failed to load.', 'Try a different site.');
+        showError('Failed to load.', 'Site may block proxies. Try another.');
       };
 
       setTimeout(() => {
@@ -220,7 +219,7 @@
           loading.classList.add('hidden');
           if (!loaded) status.textContent = 'Timeout';
           else status.textContent = 'Done';
-          if (save && !loaded) addHistory(target);
+          if (save && !loaded) addHistory(realUrl);
         }
       }, 20000);
     }
@@ -241,9 +240,23 @@
       document.getElementById('fwdBtn').disabled = idx >= history.length - 1;
     }
 
-    function goBack() { if (idx > 0) { idx--; navigate(history[idx], false); } }
-    function goForward() { if (idx < history.length - 1) { idx++; navigate(history[idx], false); } }
-    function reload() { if (idx >= 0) navigate(history[idx], false); }
+    function goBack() { 
+      if (idx > 0) { 
+        idx--; 
+        navigate(wrapProxy(history[idx]), history[idx], false); 
+      } 
+    }
+    
+    function goForward() { 
+      if (idx < history.length - 1) { 
+        idx++; 
+        navigate(wrapProxy(history[idx]), history[idx], false); 
+      } 
+    }
+    
+    function reload() { 
+      if (idx >= 0) navigate(wrapProxy(history[idx]), history[idx], false); 
+    }
 
     function goHome() {
       document.getElementById('urlInput').value = '';
