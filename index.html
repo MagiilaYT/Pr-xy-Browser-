@@ -1,4 +1,3 @@
-<!-- /mnt/agents/output/browser.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,12 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prøxy Browser</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #0a0a0a;
@@ -19,14 +13,11 @@
             height: 100vh;
             overflow: hidden;
         }
-
         .browser-container {
             display: flex;
             flex-direction: column;
             height: 100vh;
         }
-
-        /* Toolbar */
         .toolbar {
             background: #1a1a1a;
             border-bottom: 1px solid #333;
@@ -36,12 +27,7 @@
             gap: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
-
-        .nav-buttons {
-            display: flex;
-            gap: 6px;
-        }
-
+        .nav-buttons { display: flex; gap: 6px; }
         .btn {
             background: #2a2a2a;
             border: 1px solid #444;
@@ -51,30 +37,14 @@
             cursor: pointer;
             font-size: 14px;
             transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
-
-        .btn:hover {
-            background: #3a3a3a;
-            border-color: #666;
-        }
-
-        .btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
+        .btn:hover { background: #3a3a3a; border-color: #666; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .btn.primary {
             background: #6366f1;
             border-color: #6366f1;
         }
-
-        .btn.primary:hover {
-            background: #818cf8;
-        }
-
+        .btn.primary:hover { background: #818cf8; }
         .address-bar {
             flex: 1;
             display: flex;
@@ -84,13 +54,8 @@
             border-radius: 8px;
             padding: 0 12px;
             height: 40px;
-            transition: border-color 0.2s;
         }
-
-        .address-bar:focus-within {
-            border-color: #6366f1;
-        }
-
+        .address-bar:focus-within { border-color: #6366f1; }
         .address-bar input {
             background: transparent;
             border: none;
@@ -100,36 +65,31 @@
             outline: none;
             padding: 0 8px;
         }
-
-        .address-bar input::placeholder {
-            color: #666;
+        .address-bar input::placeholder { color: #666; }
+        .security-indicator { color: #22c55e; font-size: 12px; }
+        .proxy-badge {
+            background: #6366f1;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
         }
-
-        .security-indicator {
-            color: #22c55e;
-            font-size: 12px;
-        }
-
-        /* Viewport */
         .viewport {
             flex: 1;
             position: relative;
             background: #fff;
         }
-
         .viewport iframe {
             width: 100%;
             height: 100%;
             border: none;
             background: #fff;
         }
-
-        .viewport .loading {
+        .loading {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: #0a0a0a;
             display: flex;
             flex-direction: column;
@@ -138,30 +98,16 @@
             gap: 20px;
             z-index: 10;
         }
-
         .spinner {
-            width: 40px;
-            height: 40px;
+            width: 40px; height: 40px;
             border: 3px solid #333;
             border-top-color: #6366f1;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            color: #888;
-            font-size: 14px;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* Status bar */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: #888; font-size: 14px; }
+        .hidden { display: none !important; }
         .status-bar {
             background: #1a1a1a;
             border-top: 1px solid #333;
@@ -170,24 +116,18 @@
             color: #888;
             display: flex;
             justify-content: space-between;
-            align-items: center;
         }
-
-        .status-bar .url-display {
+        .url-display {
             color: #6366f1;
             max-width: 50%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-
-        /* Error overlay */
         .error-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: #0a0a0a;
             display: none;
             flex-direction: column;
@@ -196,33 +136,18 @@
             gap: 16px;
             z-index: 20;
         }
-
-        .error-overlay.active {
-            display: flex;
-        }
-
-        .error-icon {
-            font-size: 48px;
-        }
-
-        .error-title {
-            font-size: 18px;
-            color: #ef4444;
-        }
-
+        .error-overlay.active { display: flex; }
+        .error-icon { font-size: 48px; }
+        .error-title { font-size: 18px; color: #ef4444; }
         .error-message {
             color: #888;
             font-size: 14px;
             max-width: 400px;
             text-align: center;
         }
-
-        /* History dropdown */
         .history-dropdown {
             position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
+            top: 100%; left: 0; right: 0;
             background: #1a1a1a;
             border: 1px solid #444;
             border-radius: 8px;
@@ -233,11 +158,7 @@
             z-index: 100;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
-
-        .history-dropdown.active {
-            display: block;
-        }
-
+        .history-dropdown.active { display: block; }
         .history-item {
             padding: 10px 16px;
             cursor: pointer;
@@ -246,40 +167,26 @@
             gap: 10px;
             border-bottom: 1px solid #2a2a2a;
         }
-
-        .history-item:hover {
-            background: #2a2a2a;
-        }
-
-        .history-item:last-child {
-            border-bottom: none;
-        }
-
-        .history-item .favicon {
-            width: 16px;
-            height: 16px;
+        .history-item:hover { background: #2a2a2a; }
+        .history-item:last-child { border-bottom: none; }
+        .favicon {
+            width: 16px; height: 16px;
             background: #444;
             border-radius: 3px;
             flex-shrink: 0;
         }
-
-        .history-item .url-text {
+        .url-text {
             font-size: 13px;
             color: #ccc;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-
-        .address-bar-wrapper {
-            flex: 1;
-            position: relative;
-        }
+        .address-bar-wrapper { flex: 1; position: relative; }
     </style>
 </head>
 <body>
     <div class="browser-container">
-        <!-- Toolbar -->
         <div class="toolbar">
             <div class="nav-buttons">
                 <button class="btn" id="backBtn" onclick="goBack()" disabled>←</button>
@@ -287,28 +194,24 @@
                 <button class="btn" onclick="reloadPage()">↻</button>
                 <button class="btn" onclick="goHome()">🏠</button>
             </div>
-            
             <div class="address-bar-wrapper">
                 <div class="address-bar">
                     <span class="security-indicator">🔒</span>
-                    <input type="text" id="urlInput" placeholder="Enter URL (e.g., https://example.com)" 
+                    <input type="text" id="urlInput" placeholder="Enter URL (e.g., example.com)" 
                            autocomplete="off" onkeydown="handleInput(event)" onfocus="showHistory()">
                 </div>
                 <div class="history-dropdown" id="historyDropdown"></div>
             </div>
-            
             <button class="btn primary" onclick="loadUrl()">Go</button>
+            <span class="proxy-badge">PROXY</span>
         </div>
 
-        <!-- Viewport -->
         <div class="viewport" id="viewport">
             <div class="loading" id="loading">
                 <div class="spinner"></div>
-                <div class="loading-text">Loading...</div>
+                <div class="loading-text">Loading via proxy...</div>
             </div>
-            
             <iframe id="browserFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-            
             <div class="error-overlay" id="errorOverlay">
                 <div class="error-icon">⚠️</div>
                 <div class="error-title">Failed to Load</div>
@@ -317,7 +220,6 @@
             </div>
         </div>
 
-        <!-- Status Bar -->
         <div class="status-bar">
             <span id="statusText">Ready</span>
             <span class="url-display" id="urlDisplay">about:blank</span>
@@ -325,12 +227,10 @@
     </div>
 
     <script>
-        // History management
         let historyStack = [];
         let currentIndex = -1;
         const MAX_HISTORY = 50;
 
-        // Load history from localStorage
         function loadHistory() {
             const saved = localStorage.getItem('proxyHistory');
             if (saved) {
@@ -344,17 +244,12 @@
         }
 
         function addToHistory(url) {
-            // Remove forward history if we're not at the end
             if (currentIndex < historyStack.length - 1) {
                 historyStack = historyStack.slice(0, currentIndex + 1);
             }
-            
-            // Don't add duplicates at the top
             if (historyStack[historyStack.length - 1] !== url) {
                 historyStack.push(url);
-                if (historyStack.length > MAX_HISTORY) {
-                    historyStack.shift();
-                }
+                if (historyStack.length > MAX_HISTORY) historyStack.shift();
                 currentIndex = historyStack.length - 1;
                 saveHistory();
             }
@@ -381,9 +276,7 @@
         }
 
         function reloadPage() {
-            if (currentIndex >= 0) {
-                navigateTo(historyStack[currentIndex], false);
-            }
+            if (currentIndex >= 0) navigateTo(historyStack[currentIndex], false);
         }
 
         function goHome() {
@@ -393,32 +286,16 @@
             document.getElementById('statusText').textContent = 'Ready';
         }
 
-        // URL handling
         function normalizeUrl(input) {
             if (!input.trim()) return null;
-            
-            // Add protocol if missing
-            if (!input.match(/^https?:\/\//i)) {
-                input = 'https://' + input;
-            }
-            
-            try {
-                const url = new URL(input);
-                return url.href;
-            } catch (e) {
-                return null;
-            }
+            if (!input.match(/^https?:\/\//i)) input = 'https://' + input;
+            try { return new URL(input).href; } catch (e) { return null; }
         }
 
         function loadUrl() {
             const input = document.getElementById('urlInput').value;
             const url = normalizeUrl(input);
-            
-            if (!url) {
-                showError('Please enter a valid URL');
-                return;
-            }
-            
+            if (!url) { showError('Please enter a valid URL'); return; }
             navigateTo(url, true);
             hideHistory();
         }
@@ -434,15 +311,11 @@
             loading.classList.remove('hidden');
             statusText.textContent = 'Loading...';
             
-            // Use the proxy endpoint
             const proxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
-            
-            // Set iframe source through proxy
             frame.src = proxyUrl;
             urlInput.value = url;
             urlDisplay.textContent = url;
             
-            // Handle load events
             frame.onload = () => {
                 loading.classList.add('hidden');
                 statusText.textContent = 'Done';
@@ -454,26 +327,20 @@
                 showError('The page failed to load. The site may block proxies or be unavailable.');
             };
             
-            // Timeout fallback
             setTimeout(() => {
                 if (!loading.classList.contains('hidden')) {
                     loading.classList.add('hidden');
-                    statusText.textContent = 'Loaded (timeout)';
+                    statusText.textContent = 'Loaded';
                     if (addHistory) addToHistory(url);
                 }
             }, 15000);
         }
 
         function handleInput(event) {
-            if (event.key === 'Enter') {
-                loadUrl();
-                hideHistory();
-            } else if (event.key === 'Escape') {
-                hideHistory();
-            }
+            if (event.key === 'Enter') { loadUrl(); hideHistory(); }
+            else if (event.key === 'Escape') hideHistory();
         }
 
-        // Error handling
         function showError(message) {
             document.getElementById('errorMessage').textContent = message;
             document.getElementById('errorOverlay').classList.add('active');
@@ -483,22 +350,18 @@
             document.getElementById('errorOverlay').classList.remove('active');
         }
 
-        // History dropdown
         function showHistory() {
             const dropdown = document.getElementById('historyDropdown');
-            const input = document.getElementById('urlInput');
-            
             if (historyStack.length === 0) {
                 dropdown.innerHTML = '<div class="history-item"><span class="url-text" style="color:#666">No history yet</span></div>';
             } else {
                 dropdown.innerHTML = historyStack.slice().reverse().map(url => `
-                    <div class="history-item" onclick="selectHistory('${url}')">
+                    <div class="history-item" onclick="selectHistory('${url.replace(/'/g, "\\'")}')">
                         <div class="favicon"></div>
                         <span class="url-text">${escapeHtml(url)}</span>
                     </div>
                 `).join('');
             }
-            
             dropdown.classList.add('active');
         }
 
@@ -518,18 +381,12 @@
             return div.innerHTML;
         }
 
-        // Close history when clicking outside
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('.address-bar-wrapper')) {
-                hideHistory();
-            }
+            if (!e.target.closest('.address-bar-wrapper')) hideHistory();
         });
 
-        // Initialize
         loadHistory();
         updateNavButtons();
-        
-        // Focus input on load
         document.getElementById('urlInput').focus();
     </script>
 </body>
