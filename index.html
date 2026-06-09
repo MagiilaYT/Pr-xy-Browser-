@@ -125,7 +125,7 @@
         <div class="spinner"></div>
         <p>Loading via proxy...</p>
       </div>
-      <iframe id="frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+      <iframe id="frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"></iframe>
       <div class="error" id="error">
         <h2>⚠️ Can't Load</h2>
         <p id="errorMsg">This site blocks proxies.</p>
@@ -145,6 +145,7 @@
     let history = [];
     let idx = -1;
 
+    // Wake up the backend
     fetch(PROXY_BACKEND + '/').catch(() => {});
 
     function isUrl(input) {
@@ -168,16 +169,17 @@
       if (isUrl(input)) {
         target = input.match(/^https?:\/\//i) ? input : 'https://' + input;
       } else {
-        // Use backend search endpoint (NOT DuckDuckGo directly)
-        target = `${PROXY_BACKEND}/search?q=${encodeURIComponent(input)}`;
+        // Search via DuckDuckGo HTML proxy (renders in iframe)
+        target = `${PROXY_BACKEND}/ddg?q=${encodeURIComponent(input)}`;
         navigate(target, `Search: ${input}`, true);
         return;
       }
 
-      // YouTube -> Invidious
+      // YouTube -> use dedicated /youtube/ route for full URL rewriting
       if (isYouTube(target)) {
-        const videoId = target.match(/(?:v=|\/)([\w-]{11})/)?.[1];
-        target = videoId ? `https://y.com.sb/watch?v=${videoId}` : 'https://y.com.sb';
+        const ytPath = target.replace(/^https?:\/\//, '');
+        navigate(`${PROXY_BACKEND}/youtube/${ytPath}`, target, true);
+        return;
       }
 
       const proxied = wrapProxy(target);
@@ -239,39 +241,31 @@
     function goBack() { 
       if (idx > 0) { 
         idx--; 
-        const url = history[idx];
-        if (url.startsWith('Search:')) {
-          const query = url.replace('Search: ', '');
-          navigate(`${PROXY_BACKEND}/search?q=${encodeURIComponent(query)}`, url, false);
-        } else {
-          navigate(wrapProxy(url), url, false);
-        }
+        loadFromHistory(history[idx]); 
       } 
     }
     
     function goForward() { 
       if (idx < history.length - 1) { 
         idx++; 
-        const url = history[idx];
-        if (url.startsWith('Search:')) {
-          const query = url.replace('Search: ', '');
-          navigate(`${PROXY_BACKEND}/search?q=${encodeURIComponent(query)}`, url, false);
-        } else {
-          navigate(wrapProxy(url), url, false);
-        }
+        loadFromHistory(history[idx]); 
       } 
+    }
+
+    function loadFromHistory(url) {
+      if (url.startsWith('Search:')) {
+        const query = url.replace('Search: ', '');
+        navigate(`${PROXY_BACKEND}/ddg?q=${encodeURIComponent(query)}`, url, false);
+      } else if (isYouTube(url)) {
+        const ytPath = url.replace(/^https?:\/\//, '');
+        navigate(`${PROXY_BACKEND}/youtube/${ytPath}`, url, false);
+      } else {
+        navigate(wrapProxy(url), url, false);
+      }
     }
     
     function reload() { 
-      if (idx >= 0) {
-        const url = history[idx];
-        if (url.startsWith('Search:')) {
-          const query = url.replace('Search: ', '');
-          navigate(`${PROXY_BACKEND}/search?q=${encodeURIComponent(query)}`, url, false);
-        } else {
-          navigate(wrapProxy(url), url, false);
-        }
-      }
+      if (idx >= 0) loadFromHistory(history[idx]);
     }
 
     function goHome() {
