@@ -171,7 +171,7 @@
       } else {
         // Search via DuckDuckGo HTML proxy (renders in iframe)
         target = `${PROXY_BACKEND}/ddg?q=${encodeURIComponent(input)}`;
-        navigate(target, `Search: ${input}`, true);
+        navigate(target, ` ${input}`, true);
         return;
       }
 
@@ -253,8 +253,8 @@
     }
 
     function loadFromHistory(url) {
-      if (url.startsWith('Search:')) {
-        const query = url.replace('Search: ', '');
+      if (url.startsWith('')) {
+        const query = url.replace(' ', '');
         navigate(`${PROXY_BACKEND}/ddg?q=${encodeURIComponent(query)}`, url, false);
       } else if (isYouTube(url)) {
         const ytPath = url.replace(/^https?:\/\//, '');
